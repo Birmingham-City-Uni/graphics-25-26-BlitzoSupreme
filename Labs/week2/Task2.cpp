@@ -1,18 +1,22 @@
 #include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cstring>   // memset
+#include <cmath>     // std::abs
+#include <algorithm> // std::swap
 #include <lodepng.h>
 #include <fstream>
 #include <sstream>
+#include <string>
+
 #include "Vector3.hpp"
 
-// The goal for this lab is to draw a triangle mesh loaded from an OBJ file from scratch,
-// building on the image drawing code from last week's lab.
-// The mesh consists of a list of 3D vertices, that describe the points forming the mesh.
-// It also has a list of triangle indices, that determine which vertices are used to form each triangle.
-// This time, we'll also load the triangle indices, and use them to draw lines connecting the vertices.
-// This will make a wireframe render of the mesh.
-
-void setPixel(std::vector<uint8_t>& image, int x, int y, int width, int height, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+// Safe pixel write (bounds checked)
+void setPixel(std::vector<uint8_t>& image,
+	int x, int y, int width, int height,
+	uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
 {
+	if (x < 0 || y < 0 || x >= width || y >= height) return;
 	int pixelIdx = x + y * width;
 	image[pixelIdx * 4 + 0] = r;
 	image[pixelIdx * 4 + 1] = g;
@@ -20,36 +24,55 @@ void setPixel(std::vector<uint8_t>& image, int x, int y, int width, int height, 
 	image[pixelIdx * 4 + 3] = a;
 }
 
-void drawLine(std::vector<uint8_t>& image, int width, int height, int startX, int startY, int endX, int endY)
+// Robust line drawing (handles vertical lines, steep lines, etc.) using a simple DDA
+void drawLine(std::vector<uint8_t>& image,
+	int width, int height,
+	int x0, int y0, int x1, int y1)
 {
-	float gradient = float(endY - startY) / float(endX - startX);
+	int dx = x1 - x0;
+	int dy = y1 - y0;
 
-	bool steep = fabsf(gradient) > 1.0f;
+	int steps = std::max(std::abs(dx), std::abs(dy));
+	if (steps == 0) {
+		setPixel(image, x0, y0, width, height, 255, 255, 255);
+		return;
+	}
 
-	if (steep) {
-		if (startY > endY) {
-			std::swap(startX, endX);
-			std::swap(startY, endY);
-		}
-		for (int y = startY; y <= endY; ++y) {
-			int x = startX + int(float(y - startY) / gradient);
-			if (x >= 0 && x < width && y >= 0 && y < height) {
-				setPixel(image, x, y, width, height, 255, 255, 255);
-			}
-		}
+	float fx = (float)x0;
+	float fy = (float)y0;
+	float xInc = dx / (float)steps;
+	float yInc = dy / (float)steps;
+
+	for (int i = 0; i <= steps; ++i) {
+		setPixel(image, (int)std::lround(fx), (int)std::lround(fy), width, height, 255, 255, 255);
+		fx += xInc;
+		fy += yInc;
 	}
-	else {
-		if (startX > endX) {
-			std::swap(startX, endX);
-			std::swap(startY, endY);
-		}
-		for (int x = startX; x <= endX; ++x) {
-			int y = startY + int(float(x - startX) * gradient);
-			if (x >= 0 && x < width && y >= 0 && y < height) {
-				setPixel(image, x, y, width, height, 255, 255, 255);
-			}
-		}
+}
+
+// Parse an OBJ face token like "12", "12/3", "12//7", "12/3/7" and return the vertex index (0-based)
+static bool parseFaceVertexIndex(const std::string& token, unsigned& outIndex0Based)
+{
+	if (token.empty()) return false;
+
+	// Take substring up to first '/'
+	size_t slashPos = token.find('/');
+	std::string vStr = (slashPos == std::string::npos) ? token : token.substr(0, slashPos);
+
+	if (vStr.empty()) return false;
+
+	// OBJ indices are 1-based; negative indices exist in OBJ spec, but we’ll keep it simple here
+	int idx = 0;
+	try {
+		idx = std::stoi(vStr);
 	}
+	catch (...) {
+		return false;
+	}
+	if (idx <= 0) return false;
+
+	outIndex0Based = (unsigned)(idx - 1);
+	return true;
 }
 
 int main()
@@ -59,84 +82,86 @@ int main()
 	const int width = 512, height = 512;
 	const int nChannels = 4;
 
-	// Setting up an image buffer
-	// This std::vector has one 8-bit value for each pixel in each row and column of the image, and
-	// for each of the 4 channels (red, green, blue and alpha).
-	// Remember 8-bit unsigned values can range from 0 to 255.
-	std::vector<uint8_t> imageBuffer(height*width*nChannels);
-
-	// This line sets the memory block occupied by the image to all zeros.
-	memset(&imageBuffer[0], 0, width * height * nChannels * sizeof(uint8_t));
+	std::vector<uint8_t> imageBuffer(height * width * nChannels);
+	std::memset(imageBuffer.data(), 0, imageBuffer.size() * sizeof(uint8_t));
 
 	std::string bunnyFilename = "../models/stanford_bunny_simplified.obj";
-
 	std::ifstream bunnyFile(bunnyFilename);
-
+	if (!bunnyFile.is_open()) {
+		std::cout << "Failed to open OBJ file: " << bunnyFilename << std::endl;
+		return 1;
+	}
 
 	// *** Task 2 ***
-	// Your next task is to load all the vertices from the OBJ file.
-	// I've given you some starter code here that reads through each line of the
-	// OBJ file and makes it into a stringstream.
-	// For these V lines, you should load the X, Y and Z coordinates into a new vector
-	// and push it back into your array of vertices.
+	// Load vertices ('v' lines) and faces ('f' lines)
 	std::vector<Vector3> vertices;
 	std::vector<std::vector<unsigned int>> faces;
+
 	std::string line;
-	while (!bunnyFile.eof())
+	while (std::getline(bunnyFile, line))
 	{
-		std::getline(bunnyFile, line);
-		std::stringstream lineSS(line.c_str());
-		char lineStart;
-		lineSS >> lineStart;
-		char ignoreChar;
-		if (lineStart == 'v') {
+		if (line.empty()) continue;
+
+		std::stringstream lineSS(line);
+		std::string prefix;
+		lineSS >> prefix;
+
+		// Vertex positions: "v x y z"
+		if (prefix == "v")
+		{
 			Vector3 v;
-			for (int i = 0; i < 3; ++i) lineSS >> v[i];
-			vertices.push_back(v);
+			lineSS >> v[0] >> v[1] >> v[2];
+			if (!lineSS.fail()) vertices.push_back(v);
 		}
-
-
-
-		if (lineStart == 'f') {
+		// Faces: "f a b c ..." where each token may be "v", "v/vt", "v//vn", "v/vt/vn"
+		else if (prefix == "f")
+		{
 			std::vector<unsigned int> face;
-			unsigned int idx, idxTex, idxNorm;
-			while (lineSS >> idx >> ignoreChar >> idxTex >> ignoreChar >> idxNorm) {
-				face.push_back(idx-1);
+			std::string tok;
+			while (lineSS >> tok) {
+				unsigned vi = 0;
+				if (parseFaceVertexIndex(tok, vi)) {
+					face.push_back(vi);
+				}
 			}
-			if(face.size() > 0) faces.push_back(face);
+
+			// keep only faces with at least 3 vertices
+			if (face.size() >= 3) faces.push_back(face);
 		}
 	}
 
-	for (int f = 0; f < faces.size(); ++f) {
-		// **** Task 3 ****
-		// Finally, let's draw the vertices!
-		// For each vertex, we need to call setPixel to draw a point to the screen.
-		// You should end up with an output similar to example.png.
-		// Hint 1: You just need to use the x and y components of the vectors, you can ignore the z component for now.
-		// Hint 2: Note the mesh coordinates range from about -0.5 to 0.5 in each axis (x, y and z). However,
-		//         your image coordinates go from 0 to 512. You probably want to add on half of the width and height to move
-		//         your vertices towards the centre of the screen, and multiply by a value (about 200 or so) to make the mesh
-		//         big enough to see.
+	// Helper to project mesh coords (~ -0.5..0.5) into screen coords
+	auto project = [&](const Vector3& v) -> std::pair<int, int> {
+		const float scale = 250.0f;
+		int x = (int)std::lround(v[0] * scale + width * 0.5f);
+		int y = (int)std::lround(-v[1] * scale + height * 0.5f); // flip Y
+		return { x, y };
+	};
 
-		int x0 = vertices[faces[f][0]][0] * 250 + width / 2;
-		int y0 = -vertices[faces[f][0]][1] * 250 + height / 2;
-		int x1 = vertices[faces[f][1]][0] * 250 + width / 2;
-		int y1 = -vertices[faces[f][1]][1] * 250 + height / 2;
-		int x2 = vertices[faces[f][2]][0] * 250 + width / 2;
-		int y2 = -vertices[faces[f][2]][1] * 250 + height / 2;
-		drawLine(imageBuffer, width, height, x0, y0, x1, y1);
-		drawLine(imageBuffer, width, height, x1, y1, x2, y2);
-		drawLine(imageBuffer, width, height, x2, y2, x0, y0);
+	// *** Task 3 ***
+	// Draw wireframe by drawing edges of each face.
+	// If a face has >3 vertices, connect them in a loop (polygon outline).
+	for (size_t f = 0; f < faces.size(); ++f)
+	{
+		const auto& face = faces[f];
 
+		for (size_t i = 0; i < face.size(); ++i) {
+			unsigned i0 = face[i];
+			unsigned i1 = face[(i + 1) % face.size()];
+
+			// Safety: check indices are valid
+			if (i0 >= vertices.size() || i1 >= vertices.size()) continue;
+
+			auto [x0, y0] = project(vertices[i0]);
+			auto [x1, y1] = project(vertices[i1]);
+
+			drawLine(imageBuffer, width, height, x0, y0, x1, y1);
+		}
 	}
 
-	// *** Encoding image data ***
-	// PNG files are compressed to save storage space. 
-	// The lodepng::encode function applies this compression to the image buffer and saves the result 
-	// to the filename given.
-	int errorCode;
-	errorCode = lodepng::encode(outputFilename, imageBuffer, width, height);
-	if (errorCode) { // check the error code, in case an error occurred.
+	// Save PNG
+	int errorCode = lodepng::encode(outputFilename, imageBuffer, width, height);
+	if (errorCode) {
 		std::cout << "lodepng error encoding image: " << lodepng_error_text(errorCode) << std::endl;
 		return errorCode;
 	}
