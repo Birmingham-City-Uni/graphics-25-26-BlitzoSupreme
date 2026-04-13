@@ -4,6 +4,13 @@
 #include <algorithm>
 #include "lodepng.h"
 
+#include "Image.hpp"
+#include "LinAlg.hpp"
+#include "Light.hpp"
+#include "Mesh.hpp"
+#include "Shading.hpp"
+
+
 // Simple vector structs
 struct float3 {
     float x, y, z;
