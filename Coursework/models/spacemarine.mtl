@@ -1,0 +1,210 @@
+# Blender 5.1.1 MTL File: 'spacemarine.blend'
+# www.blender.org
+
+newmtl 24_+Chest.Light_0.5_0_0.001
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntTorso_D.jpg
+map_Ks C:/HormagauntTorso_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntTorso_N.jpg
+
+newmtl 24_-Chest.Heavy_0.5_0_0.001
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntUpgrades_D.jpg
+map_Ks C:/HormagauntUpgrades_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntUpgrades_N.jpg
+
+newmtl 24_-Claws.Blades_0.5_0_0
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntUpgrades_D.jpg
+map_Ks C:/HormagauntUpgrades_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntUpgrades_N.jpg
+
+newmtl 24_-Crest1.Crest1_0.5_0_0.001
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntUpgrades_D.jpg
+map_Ks C:/HormagauntUpgrades_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntUpgrades_N.jpg
+
+newmtl 24_-Crest2.Crest2_0.5_0_0.001
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntUpgrades_D.jpg
+map_Ks C:/HormagauntUpgrades_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntUpgrades_N.jpg
+
+newmtl 24_-Crest3.Crest3_0.5_0_0.001
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntUpgrades_D.jpg
+map_Ks C:/HormagauntUpgrades_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntUpgrades_N.jpg
+
+newmtl 24_Head_0.5_0_0.001
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntHead_D.jpg
+map_Ks C:/HormagauntHead_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntHead_N.jpg
+
+newmtl 24_Torso_0.5_0_0.001
+Ns 96.078415
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd C:/HormagauntTorso_D.jpg
+map_Ks C:/HormagauntTorso_S.jpg
+map_Bump -bm 1.000000 C:/HormagauntTorso_N.jpg
+
+newmtl default_ch_purity_seals_01
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_purity_seals_01.jpeg
+
+newmtl default_ch_titus_arms_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_arms_02.jpeg
+
+newmtl default_ch_titus_belt_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_belt_02.jpeg
+
+newmtl default_ch_titus_body_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_body_02.jpeg
+
+newmtl default_ch_titus_helmet_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_helmet_02.jpeg
+
+newmtl default_ch_titus_jetpack_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_jetpack_02.jpeg
+
+newmtl default_ch_titus_legs_02_a
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_legs_02_a.jpeg
+
+newmtl default_ch_titus_legs_02_b
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_legs_02_b.jpeg
+
+newmtl default_ch_titus_shoulders_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_shoulders_02.jpeg
+
+newmtl default_ch_titus_tabard_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_tabard_02.jpeg
+
+newmtl default_ch_titus_undersuit_02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_undersuit_02.jpeg
+
+newmtl papyrus_ch_titus_acc
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/ch_titus_acc.jpeg
