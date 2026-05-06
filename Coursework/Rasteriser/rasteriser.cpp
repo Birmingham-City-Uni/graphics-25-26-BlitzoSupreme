@@ -471,8 +471,10 @@ void doSSAA(std::vector<uint8_t>& imgBuffer, int height, int width, std::vector<
 int main()
 {
 	std::string outputFilename = "output.png";
+
 	int width = 1920, height = 1080;
 	int outputWidth = 1920, outputHeight = 1080;
+
 	const int nChannels = 4;
 	bool SSAA = false;
 
@@ -482,27 +484,41 @@ int main()
 		height *= 2;
 	}
 
-	// Set up an image buffer
+	// ------------------------------------------------------------
+	// IMAGE + Z BUFFER
+	// ------------------------------------------------------------
+
 	std::vector<uint8_t> imageBuffer(height * width * nChannels, 0);
 	std::vector<float> zBuffer(height * width, 1.0f);
 
 	Color black{ 0,0,0,255 };
-	for (int r = 0; r < height; ++r) {
-		for (int c = 0; c < width; ++c) {
+
+	for (int r = 0; r < height; ++r)
+	{
+		for (int c = 0; c < width; ++c)
+		{
 			setPixel(imageBuffer, c, r, width, height, black);
 
-			// ?? SAFE INDEXING
 			int idx = r * width + c;
+
 			if (idx >= 0 && idx < (int)zBuffer.size())
 				zBuffer[idx] = 1.0f;
 		}
 	}
 
+	// ------------------------------------------------------------
+	// PROJECTION
+	// ------------------------------------------------------------
+
 	Eigen::Matrix4f projection = projectionMatrix(height, width);
 
+	// ------------------------------------------------------------
+// CAMERA
+// ------------------------------------------------------------
+
 	Eigen::Matrix4f cameraToWorld =
-		translationMatrix(Eigen::Vector3f(0.f, -.3f, 0.f)) *
-		rotateXMatrix(0 * M_PI / 180);
+		translationMatrix(Eigen::Vector3f(0.0f, 0.8f, 4.5f)) *
+		rotateXMatrix(-5.0f * M_PI / 180.0f);
 
 	Eigen::Vector3f camWorldPos =
 		(cameraToWorld * Eigen::Vector4f(0, 0, 0, 1)).block<3, 1>(0, 0);
@@ -510,66 +526,107 @@ int main()
 	Eigen::Matrix4f worldToCamera = cameraToWorld.inverse();
 	Eigen::Matrix4f worldToClip = projection * worldToCamera;
 
+	// ------------------------------------------------------------
+	// LIGHTS
+	// ------------------------------------------------------------
+
 	std::vector<std::unique_ptr<Light>> lights;
-	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.2f, 0.2f, 0.2f)));
-	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.3f, 0.3f, .3f), Eigen::Vector3f(0.f, -1.f, -1.0f)));
-	lights.emplace_back(new SpotLight(Eigen::Vector3f(10.f, 10.f, 10.f), Eigen::Vector3f(2.4f, 0.3f, 5.f), Eigen::Vector3f(-1.f, -0.5f, 0.2f), 40 * M_PI / 180));
 
-	// ?? LOAD MESHES
-	Mesh ChainswordMesh = loadMeshFile("../../Models/Chainsword.obj");
+	lights.emplace_back(
+		new AmbientLight(Eigen::Vector3f(0.2f, 0.2f, 0.2f)));
 
-	std::vector<uint8_t> ChainswordTexture;
-	unsigned int ChainswordTexWidth = 0, ChainswordTexHeight = 0;
-	unsigned int err1 = lodepng::decode(ChainswordTexture, ChainswordTexWidth, ChainswordTexHeight, "../../models/ChainswordTexture.png");
+	lights.emplace_back(
+		new DirectionalLight(
+			Eigen::Vector3f(0.3f, 0.3f, 0.3f),
+			Eigen::Vector3f(0.f, -1.f, -1.0f)));
 
-	Mesh tyranidsMesh = loadMeshFile("../../Models/tyranids.obj");
+	lights.emplace_back(
+		new SpotLight(
+			Eigen::Vector3f(10.f, 10.f, 10.f),
+			Eigen::Vector3f(2.4f, 0.3f, 5.f),
+			Eigen::Vector3f(-1.f, -0.5f, 0.2f),
+			40 * M_PI / 180));
 
-	std::vector<uint8_t> tyranidsTexture;
-	unsigned int tyranidsTexWidth = 0, tyranidsTexHeight = 0;
-	unsigned int err2 = lodepng::decode(tyranidsTexture, tyranidsTexWidth, tyranidsTexHeight, "../../models/TyranidTexture.png");
+	// ------------------------------------------------------------
+	// LOAD MESH
+	// ------------------------------------------------------------
 
-	// ?? CHECK TEXTURE LOAD SUCCESS
-	if (err1 || ChainswordTexture.empty() || ChainswordTexWidth == 0 || ChainswordTexHeight == 0)
+	Mesh HeathersittingMesh =
+		loadMeshFile("../../Models/Heathersitting.obj");
+
+	// ------------------------------------------------------------
+	// LOAD TEXTURE
+	// ------------------------------------------------------------
+
+	std::vector<uint8_t> HeathersittingTexture;
+
+	unsigned int HeathersittingTexWidth = 0;
+	unsigned int HeathersittingTexHeight = 0;
+
+	unsigned int err1 =
+		lodepng::decode(
+			HeathersittingTexture,
+			HeathersittingTexWidth,
+			HeathersittingTexHeight,
+			"../../Models/head.png");
+
+	if (err1 ||
+		HeathersittingTexture.empty() ||
+		HeathersittingTexWidth == 0 ||
+		HeathersittingTexHeight == 0)
 	{
-		std::cout << "Failed to load Chainsword texture\n";
+		std::cout << "Failed to load Heathersitting texture\n";
 		return -1;
 	}
 
-	if (err2 || tyranidsTexture.empty() || tyranidsTexWidth == 0 || tyranidsTexHeight == 0)
+
+	// ------------------------------------------------------------
+	// MODEL TRANSFORM
+	// ------------------------------------------------------------
+
+	Eigen::Matrix4f HeathersittingTransform =
+		translationMatrix(Eigen::Vector3f(1.2f, -1.3f, -3.5f)) *
+		rotateYMatrix(200.0f * M_PI / 180.0f) *
+		scaleMatrix(0.9f);
+
+	// ------------------------------------------------------------
+	// DRAW
+	// ------------------------------------------------------------
+
+	drawMesh(
+		imageBuffer,
+		zBuffer,
+		HeathersittingMesh,
+
+		Eigen::Vector3f::Ones() * 1.0f,
+		100.f,
+		camWorldPos,
+
+		HeathersittingTransform,
+		worldToClip,
+		lights,
+
+		width,
+		height,
+
+		HeathersittingTexture,
+		HeathersittingTexHeight,
+		HeathersittingTexWidth);
+
+	// ------------------------------------------------------------
+	// SAVE OUTPUT
+	// ------------------------------------------------------------
+
+	unsigned int errorCode =
+		lodepng::encode(outputFilename, imageBuffer, width, height);
+
+	if (errorCode)
 	{
-		std::cout << "Failed to load Tyranids texture\n";
-		return -1;
-	}
+		std::cout
+			<< "lodepng error encoding image: "
+			<< lodepng_error_text(errorCode)
+			<< std::endl;
 
-	// ?? DRAW (only if textures valid)
-	Eigen::Matrix4f tyranidsTransform;
-	tyranidsTransform =
-		translationMatrix(Eigen::Vector3f(1.f, -1.2f, 2.f)) *
-		scaleMatrix(0.8f);
-
-	drawMesh(imageBuffer, zBuffer, tyranidsMesh,
-		Eigen::Vector3f::Ones() * 1.0f, 100.f, camWorldPos,
-		tyranidsTransform, worldToClip, lights,
-		width, height,
-		tyranidsTexture, tyranidsTexHeight, tyranidsTexWidth);
-
-	Eigen::Matrix4f ChainswordTransform;
-	ChainswordTransform =
-		translationMatrix(Eigen::Vector3f(1.5f, -0.8f, 6.9f)) *
-		scaleMatrix(0.7) *
-		rotateYMatrix(190 * M_PI / 180);
-
-	drawMesh(imageBuffer, zBuffer, ChainswordMesh,
-		Eigen::Vector3f::Ones() * 1.0f, 100.f, camWorldPos,
-		ChainswordTransform, worldToClip, lights,
-		width, height,
-		ChainswordTexture, ChainswordTexHeight, ChainswordTexWidth);
-
-	// ?? SAFE ENCODE
-	unsigned int errorCode = lodepng::encode(outputFilename, imageBuffer, width, height);
-	if (errorCode) {
-		std::cout << "lodepng error encoding image: "
-			<< lodepng_error_text(errorCode) << std::endl;
 		return errorCode;
 	}
 

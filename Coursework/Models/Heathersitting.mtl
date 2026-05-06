@@ -1,0 +1,42 @@
+# Blender 5.1.1 MTL File: 'Blenderscene.blend'
+# www.blender.org
+
+newmtl Heather:hair1
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+map_Kd C:/hair.png
+map_d C:/hair.png
+
+newmtl Heather:head1
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+map_Kd C:/head.png
+map_d C:/head.png
+
+newmtl Heather:skirt1
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+map_Kd C:/skirt.png
+map_d C:/skirt.png
+
+newmtl Heather:vest1
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+map_Kd C:/vest.png
+map_d C:/vest.png
