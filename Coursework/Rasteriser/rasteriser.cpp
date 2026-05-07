@@ -471,54 +471,31 @@ void doSSAA(std::vector<uint8_t>& imgBuffer, int height, int width, std::vector<
 int main()
 {
 	std::string outputFilename = "output.png";
-
 	int width = 1920, height = 1080;
 	int outputWidth = 1920, outputHeight = 1080;
-
 	const int nChannels = 4;
-	bool SSAA = false;
+	bool SSAA = true;
 
-	if (SSAA)
-	{
-		width *= 2;
-		height *= 2;
-	}
+	if (SSAA) { width *= 2; height *= 2; }
 
-	// ------------------------------------------------------------
-	// IMAGE + Z BUFFER
-	// ------------------------------------------------------------
+	std::vector<uint8_t> imageBuffer(height * width * nChannels);
+	std::vector<float> zBuffer(height * width);
 
-	std::vector<uint8_t> imageBuffer(height * width * nChannels, 0);
-	std::vector<float> zBuffer(height * width, 1.0f);
-
-	Color black{ 0,0,0,255 };
-
+	Color black{ 0, 0, 0, 255 };
 	for (int r = 0; r < height; ++r)
-	{
-		for (int c = 0; c < width; ++c)
-		{
+		for (int c = 0; c < width; ++c) {
 			setPixel(imageBuffer, c, r, width, height, black);
-
-			int idx = r * width + c;
-
-			if (idx >= 0 && idx < (int)zBuffer.size())
-				zBuffer[idx] = 1.0f;
+			zBuffer[r * width + c] = 1.0f;
 		}
-	}
-
-	// ------------------------------------------------------------
-	// PROJECTION
-	// ------------------------------------------------------------
 
 	Eigen::Matrix4f projection = projectionMatrix(height, width);
 
-	// ------------------------------------------------------------
-// CAMERA
-// ------------------------------------------------------------
-
+	// -------------------------------------------------------
+	// CAMERA: Low angle, level, looking straight down corridor
+	// -------------------------------------------------------
 	Eigen::Matrix4f cameraToWorld =
-		translationMatrix(Eigen::Vector3f(0.0f, 0.8f, 4.5f)) *
-		rotateXMatrix(-5.0f * M_PI / 180.0f);
+		translationMatrix(Eigen::Vector3f(0.f, 0.1f, -1.5f)) *
+		rotateXMatrix(5.f * M_PI / 180.f);
 
 	Eigen::Vector3f camWorldPos =
 		(cameraToWorld * Eigen::Vector4f(0, 0, 0, 1)).block<3, 1>(0, 0);
@@ -526,109 +503,113 @@ int main()
 	Eigen::Matrix4f worldToCamera = cameraToWorld.inverse();
 	Eigen::Matrix4f worldToClip = projection * worldToCamera;
 
-	// ------------------------------------------------------------
+	// -------------------------------------------------------
 	// LIGHTS
-	// ------------------------------------------------------------
-
+	// -------------------------------------------------------
 	std::vector<std::unique_ptr<Light>> lights;
 
-	lights.emplace_back(
-		new AmbientLight(Eigen::Vector3f(0.2f, 0.2f, 0.2f)));
+	// Deep blood-red ambient
+	lights.emplace_back(new AmbientLight(
+		Eigen::Vector3f(0.18f, 0.03f, 0.02f)));
 
-	lights.emplace_back(
-		new DirectionalLight(
-			Eigen::Vector3f(0.3f, 0.3f, 0.3f),
-			Eigen::Vector3f(0.f, -1.f, -1.0f)));
+	// Warm orange bounce fill from behind/above Xeno
+	lights.emplace_back(new DirectionalLight(
+		Eigen::Vector3f(0.4f, 0.15f, 0.04f),
+		Eigen::Vector3f(0.f, -0.6f, 1.f)));
 
-	lights.emplace_back(
-		new SpotLight(
-			Eigen::Vector3f(10.f, 10.f, 10.f),
-			Eigen::Vector3f(2.4f, 0.3f, 5.f),
-			Eigen::Vector3f(-1.f, -0.5f, 0.2f),
-			40 * M_PI / 180));
+	// Blazing backlight spotlight — the glowing doorway behind the Xeno
+	lights.emplace_back(new SpotLight(
+		Eigen::Vector3f(12.f, 7.f, 1.5f),
+		Eigen::Vector3f(0.f, 0.6f, 7.5f),
+		Eigen::Vector3f(0.f, -0.1f, -1.f),
+		35.f * M_PI / 180.f));
 
-	// ------------------------------------------------------------
-	// LOAD MESH
-	// ------------------------------------------------------------
+	// -------------------------------------------------------
+	// TEXTURES
+	// -------------------------------------------------------
 
-	Mesh HeathersittingMesh =
-		loadMeshFile("../../Models/Heathersitting.obj");
-
-	// ------------------------------------------------------------
-	// LOAD TEXTURE
-	// ------------------------------------------------------------
-
-	std::vector<uint8_t> HeathersittingTexture;
-
-	unsigned int HeathersittingTexWidth = 0;
-	unsigned int HeathersittingTexHeight = 0;
-
-	unsigned int err1 =
-		lodepng::decode(
-			HeathersittingTexture,
-			HeathersittingTexWidth,
-			HeathersittingTexHeight,
-			"../../Models/head.png");
-
-	if (err1 ||
-		HeathersittingTexture.empty() ||
-		HeathersittingTexWidth == 0 ||
-		HeathersittingTexHeight == 0)
+	// --- Wall texture (PNG) loaded via lodepng ---
+	std::vector<uint8_t> wallTexture;
+	unsigned int wallTexWidth, wallTexHeight;
 	{
-		std::cout << "Failed to load Heathersitting texture\n";
-		return -1;
+		unsigned int error = lodepng::decode(wallTexture, wallTexWidth, wallTexHeight,
+			"../../Models/lambert1_albedo.png");
+		if (error)
+		{
+			std::cerr << "lodepng error loading lambert1_albedo.png: "
+				<< lodepng_error_text(error) << std::endl;
+			return 1;
+		}
 	}
 
-
-	// ------------------------------------------------------------
-	// MODEL TRANSFORM
-	// ------------------------------------------------------------
-
-	Eigen::Matrix4f HeathersittingTransform =
-		translationMatrix(Eigen::Vector3f(1.2f, -1.3f, -3.5f)) *
-		rotateYMatrix(200.0f * M_PI / 180.0f) *
-		scaleMatrix(0.9f);
-
-	// ------------------------------------------------------------
-	// DRAW
-	// ------------------------------------------------------------
-
-	drawMesh(
-		imageBuffer,
-		zBuffer,
-		HeathersittingMesh,
-
-		Eigen::Vector3f::Ones() * 1.0f,
-		100.f,
-		camWorldPos,
-
-		HeathersittingTransform,
-		worldToClip,
-		lights,
-
-		width,
-		height,
-
-		HeathersittingTexture,
-		HeathersittingTexHeight,
-		HeathersittingTexWidth);
-
-	// ------------------------------------------------------------
-	// SAVE OUTPUT
-	// ------------------------------------------------------------
-
-	unsigned int errorCode =
-		lodepng::encode(outputFilename, imageBuffer, width, height);
-
-	if (errorCode)
+	// --- Xeno texture (PNG) loaded via lodepng ---
+	std::vector<uint8_t> xenoTexture;
+	unsigned int xenoTexWidth, xenoTexHeight;
 	{
-		std::cout
-			<< "lodepng error encoding image: "
-			<< lodepng_error_text(errorCode)
-			<< std::endl;
+		unsigned int error = lodepng::decode(xenoTexture, xenoTexWidth, xenoTexHeight,
+			"../../Models/xenomorph_d.png");
+		if (error)
+		{
+			std::cerr << "lodepng error loading xenomorph_d.png: "
+				<< lodepng_error_text(error) << std::endl;
+			return 1;
+		}
+	}
 
+	// -------------------------------------------------------
+	// MESHES
+	// -------------------------------------------------------
+
+	// --- Main Corridor Hall (wall texture) ---
+	Mesh hallMesh = loadMeshFile("../../Models/mainhall.obj");
+	Eigen::Matrix4f hallTransform =
+		translationMatrix(Eigen::Vector3f(0.f, 0.f, 3.f)) *
+		scaleMatrix(1.0f);
+	drawMesh(imageBuffer, zBuffer, hallMesh,
+		Eigen::Vector3f::Ones() * 1.0f, 100.f, camWorldPos,
+		hallTransform, worldToClip, lights, width, height,
+		wallTexture, wallTexHeight, wallTexWidth);
+
+	// --- Back Wall / Glowing Doorway (wall texture) ---
+	Mesh backWallMesh = loadMeshFile("../../Models/backwall.obj");
+	Eigen::Matrix4f backWallTransform =
+		translationMatrix(Eigen::Vector3f(0.f, 0.f, 8.5f)) *
+		scaleMatrix(1.0f);
+	drawMesh(imageBuffer, zBuffer, backWallMesh,
+		Eigen::Vector3f::Ones() * 1.0f, 100.f, camWorldPos,
+		backWallTransform, worldToClip, lights, width, height,
+		wallTexture, wallTexHeight, wallTexWidth);
+
+	// --- Xenomorph (xeno texture) ---
+	Mesh xenoMesh = loadMeshFile("../../Models/XENO.obj");
+	Eigen::Matrix4f xenoTransform =
+		translationMatrix(Eigen::Vector3f(0.1f, -0.05f, 5.5f)) *
+		scaleMatrix(1.0f) *
+		rotateYMatrix(185.f * M_PI / 180.f);
+	drawMesh(imageBuffer, zBuffer, xenoMesh,
+		Eigen::Vector3f::Ones() * 1.0f, 100.f, camWorldPos,
+		xenoTransform, worldToClip, lights, width, height,
+		xenoTexture, xenoTexHeight, xenoTexWidth);
+
+	// -------------------------------------------------------
+	// OUTPUT
+	// -------------------------------------------------------
+	int errorCode = 0;
+	if (SSAA) {
+		std::vector<uint8_t> outputBuffer(outputWidth * outputHeight * nChannels);
+		doSSAA(imageBuffer, height, width, outputBuffer);
+		errorCode = lodepng::encode(outputFilename, outputBuffer, outputWidth, outputHeight);
+	}
+	else {
+		errorCode = lodepng::encode(outputFilename, imageBuffer, outputWidth, outputHeight);
+	}
+
+	if (errorCode) {
+		std::cout << "lodepng error: " << lodepng_error_text(errorCode) << std::endl;
 		return errorCode;
 	}
 
+	saveZBufferImage("zBuffer.png", zBuffer, width, height);
+	std::cout << timesDraw;
 	return 0;
 }
