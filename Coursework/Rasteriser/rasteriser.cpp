@@ -24,23 +24,27 @@ struct RObject {
 	std::vector<uint8_t> texture;
 	unsigned int texW, texH;
 	Eigen::Matrix4f transform;
+	Eigen::Vector3f specularColor = Eigen::Vector3f::Ones();
+	float specularExponent = 100.f;
 };
 
-RObject loadObject(const std::string& meshPath, const std::string& texturePath, Eigen::Vector3f position, float rotX = 0.f, float rotY = 0.f, float rotZ = 0.f) {
+RObject loadObject(const std::string& meshPath, const std::string& texturePath,
+	Eigen::Vector3f position, float rotX = 0.f, float rotY = 0.f, float rotZ = 0.f,
+	Eigen::Vector3f specColor = Eigen::Vector3f::Ones(), float specExp = 100.f) {
 	RObject obj;
 	obj.mesh = loadMeshFile(meshPath);
 	unsigned error = lodepng::decode(obj.texture, obj.texW, obj.texH, texturePath);
 	if (error) {
 		std::cerr << "Texture load failed for " << texturePath
 			<< ": " << lodepng_error_text(error) << std::endl;
-		// Set safe fallback dimensions
 		obj.texW = 1; obj.texH = 1;
-		obj.texture = { 255, 0, 255, 255 }; // magenta fallback
+		obj.texture = { 255, 0, 255, 255 };
 	}
 	obj.transform = translationMatrix(position) * rotateXMatrix(rotX) * rotateYMatrix(rotY) * rotateZMatrix(rotZ);
+	obj.specularColor = specColor;   
+	obj.specularExponent = specExp;  
 	return obj;
 }
-
 
 
 float radians(const float degrees) {
@@ -107,10 +111,9 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 
 	Eigen::Vector2f edge1 = v2(t.screen[2] - t.screen[0]);
 	Eigen::Vector2f edge2 = v2(t.screen[1] - t.screen[0]);
-	float triangleArea = 0.5f * vec2Cross(edge2, edge1);
-	if (triangleArea < 0) {
-		// Triangle is backfacing
-		// Exit and quit drawing!
+	//backface culling edited, need both faces to render
+	float triangleArea = 0.5f * fabsf(vec2Cross(edge2, edge1));
+	if (triangleArea <= 0) {
 		return;
 	}
 
@@ -325,7 +328,7 @@ void drawMesh(std::vector<unsigned char>& image,
 		t.screen[0] = Eigen::Vector3f(
 			width * (vClip0.x() + 1.0f) / 2,
 			height * (-vClip0.y() + 1.0f) / 2,
-			w0   // was vClip0.z() — wrong!
+			w0  
 		);
 		t.screen[1] = Eigen::Vector3f(
 			width * (vClip1.x() + 1.0f) / 2,
@@ -401,31 +404,49 @@ int main()
 
 	std::vector<std::unique_ptr<Light>> lights;
 	// I've already added an ambient light for you!
-	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.1f, 0.1f, 0.1f)));
+	// Much darker ambient with a very slight cool tint
+	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.03f, 0.03f, 0.05f)));
 
-	//lights.emplace_back(new PointLight(Eigen::Vector3f(1.1f, 1.1f, 1.1f), Eigen::Vector3f(0.f, 1.0f, 0.f)));
-	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.4f, 0.4f, 0.4f), Eigen::Vector3f(1.f, 0.f, 0.0f)));
-	//lights.emplace_back(new SpotLight(Eigen::Vector3f(10.0f, 0.0f, 0.0f), Eigen::Vector3f(0.f, 1.f, 0.0f), Eigen::Vector3f(0, -1, 0), M_PI/8));
+	// Warm key light simulating the window — direction tweaked to come from the left/front
+	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.30f, 0.25f, 0.18f), Eigen::Vector3f(-1.f, 0.3f, 0.5f)));
 
+	// Dim fill light from the opposite side to keep shadows from going pure black
+	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.04f, 0.04f, 0.06f), Eigen::Vector3f(1.f, 0.f, -0.5f)));
+
+	Eigen::Vector3f noSpec(0.05f, 0.05f, 0.05f);
+	float lowExp = 10.f;
 
 	//Updated Render Helper Function
 	std::vector<RObject> objects = {
-		loadObject("../models/HotelRoomUse.obj","../models/SH_initial_loader.exe_Sun_Dec_04_10-00-02_2005_9.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-
+		loadObject("../models/Room1.obj","../models/Room1Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room2.obj","../models/Room2Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
+		loadObject("../models/Room3.obj","../models/Room3Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room4.obj","../models/Room4Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room5.obj","../models/Room5Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room6.obj","../models/Room6Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room7.obj","../models/Room7Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room8.obj","../models/Room8Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room9.obj","../models/Room9Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room10.obj","../models/Room10Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room11.obj","../models/Room11Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room12.obj","../models/Room12Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Room13.obj","../models/Room13Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
 		//HEATHER
-		loadObject("../models/Heather_HAIR.obj","../models/hair.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-		loadObject("../models/Heather_HEAD.obj","../models/head.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-		loadObject("../models/Heather_SKIRT.obj","../models/skirt.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-		loadObject("../models/Heather_VEST.obj","../models/vest.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-
+		loadObject("../models/Heather_HAIR.obj","../models/hair.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
+		loadObject("../models/Heather_HEAD.obj","../models/head.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
+		loadObject("../models/Heather_SKIRT.obj","../models/skirt.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
+		loadObject("../models/Heather_VEST.obj","../models/vest.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
 		//DOUG
-		loadObject("../models/Doug_ARMS.obj","../models/Darms.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-		loadObject("../models/Doug_BODY.obj","../models/Dbody.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-		loadObject("../models/Doug_HAIR.obj","../models/Dhair.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
-		loadObject("../models/Doug_HEAD.obj","../models/Dhead.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
+		loadObject("../models/Doug_ARMS.obj","../models/Darms.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
+		loadObject("../models/Doug_BODY.obj","../models/Dbody.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
+		loadObject("../models/Doug_HAIR.obj","../models/Dhair.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
+		loadObject("../models/Doug_HEAD.obj","../models/Dhead.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
 	};
+	
 	for (const auto& obj : objects) {
-		drawMesh(imageBuffer, zBuffer, obj.mesh, obj.texture, obj.texW, obj.texH, obj.transform, worldToClip, lights, width, height, specularColor, specularExponent, mode, camWorldPos);
+		drawMesh(imageBuffer, zBuffer, obj.mesh, obj.texture, obj.texW, obj.texH,
+			obj.transform, worldToClip, lights, width, height,
+			obj.specularColor, obj.specularExponent, mode, camWorldPos);  // use obj's values
 	}
 
 	// For debug - draw point lights as colored circles so we can see where they are
