@@ -1,5 +1,5 @@
 # pragma once
-# include <eigen/dense>
+# include <Eigen/Dense>
 
 // This convenience function converts a 3D vector to a 4D homogeneous vector,
 // setting the w component to 1.
@@ -44,6 +44,7 @@ Eigen::Matrix4f scaleMatrix(float s)
 	return output;
 }
 
+//https://en.wikipedia.org/wiki/Rotation_matrix#Basic_3D_rotations
 Eigen::Matrix4f rotateXMatrix(float theta)
 {
 	// *** Your code here ***
@@ -67,6 +68,16 @@ Eigen::Matrix4f rotateYMatrix(float theta)
 	return output;
 }
 
+Eigen::Matrix4f rotateZMatrix(float theta) {
+	Eigen::Matrix4f output;
+	output <<
+		cosf(theta), -sinf(theta), 0, 0,
+		sinf(theta), cosf(theta), 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1;
+	return output;
+}
+
 template<typename T> T coeffWiseMultiply(const T& l, const T& r)
 {
 	return (l.array() * r.array()).matrix();
@@ -75,11 +86,11 @@ template<typename T> T coeffWiseMultiply(const T& l, const T& r)
 bool outsideClipBox(const Eigen::Vector4f& v)
 {
 	return
-		v.x() < -1.f ||
-		v.y() < -1.f ||
-		v.z() < -1.f ||
-		v.x() > 1.f ||
-		v.y() > 1.f ||
-		v.z() > 1.f;
+		v.x() < -3.5f ||
+		v.y() < -3.5f ||
+		v.z() < -3.f ||
+		v.x() > 3.5f ||
+		v.y() > 3.5f ||
+		v.z() > 3.f;
 }
 
