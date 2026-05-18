@@ -33,6 +33,8 @@ RObject loadObject(const std::string& meshPath, const std::string& texturePath,
 	Eigen::Vector3f specColor = Eigen::Vector3f::Ones(), float specExp = 100.f) {
 	RObject obj;
 	obj.mesh = loadMeshFile(meshPath);
+
+	//texture support
 	unsigned error = lodepng::decode(obj.texture, obj.texW, obj.texH, texturePath);
 	if (error) {
 		std::cerr << "Texture load failed for " << texturePath
@@ -159,6 +161,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 
 			// Add code to calculate the texture coordinates corresponding to P, texP.
 			// Use barycentric interpolation!
+			//Texture coordinate interpolation
 			Eigen::Vector2f texP = depthP * (t.texs[0] * b0 / depth0 + t.texs[1] * b1 / depth1 + t.texs[2] * b2 / depth2);
 
 			// Convert this coordinate to a point in texture space
@@ -190,6 +193,7 @@ void drawTriangle(std::vector<uint8_t>& image, int width, int height,
 
 			Eigen::Vector3f viewDir = (camWorldPos - worldP).normalized();
 
+			//Zbuffer test
 			int depthIdx = y * width + x;
 
 			if (depth > zBuffer[depthIdx]) {
@@ -321,6 +325,7 @@ void drawMesh(std::vector<unsigned char>& image,
 		vClip1 /= vClip1.w();
 		vClip2 /= vClip2.w();
 
+		//checks for clipping
 		if (outsideClipBox(vClip0) || outsideClipBox(vClip1) || outsideClipBox(vClip2)) {
 			continue;
 		}
@@ -377,6 +382,7 @@ int main()
 	for (int r = 0; r < height; ++r) {
 		for (int c = 0; c < width; ++c) {
 			setPixel(imageBuffer, c, r, width, height, black);
+			//Zbuffer created
 			zBuffer[r * width + c] = std::numeric_limits<float>::max();
 		}
 	}
@@ -416,7 +422,7 @@ int main()
 	Eigen::Vector3f noSpec(0.05f, 0.05f, 0.05f);
 	float lowExp = 10.f;
 
-	//Updated Render Helper Function
+	//load mesh and texture and build transforms
 	std::vector<RObject> objects = {
 		loadObject("../models/Room1.obj","../models/Room1Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0)),
 		loadObject("../models/Room2.obj","../models/Room2Tex.png",{-28.0f,5.0f,25.f},radians(180),radians(100),radians(0), noSpec, lowExp),
