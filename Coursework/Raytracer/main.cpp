@@ -25,6 +25,10 @@
 nlohmann::json loadConfig(const std::string& filename)
 {
 	std::ifstream configStream(filename);
+	if (!configStream.is_open()) {
+		std::cerr << "ERROR: Could not open config file: " << filename << std::endl;
+		throw std::runtime_error("Config file not found: " + filename);
+	}
 	nlohmann::json config = nlohmann::json::parse(configStream);
 	return config;
 }
@@ -57,7 +61,7 @@ struct ModelSpawner {
 		}
 
 		Eigen::Matrix4f transform = makeTranslationMatrix(position) * rotateX(rotX) * rotateY(rotY) * rotateZ(rotZ);
-		auto node = std::make_shared<BVHNode>(*model, shader, bvhDepth, transform);
+		auto node = std::make_shared<BVHNode>(*model, shader, bvhDepth, transform, nullptr, false);
 		scene.renderables.push_back(node);
 		return node;
 	}
@@ -251,21 +255,24 @@ int main(int argc, char* argv[]) {
 	builder.addObject("../models/Doug_HEAD.obj", &dHeadTShader, 4, scenePos, rX, rY, rZ);
 
 	// *** Add lights to scene ***
-	// Ported from rasterizer: dark moody interior lighting.
-	// Ambient is very dark with a slight cool tint.
-	Eigen::Vector3f ambientLight(0.03f, 0.03f, 0.05f);
+	Eigen::Vector3f ambientLight(0.22f, 0.17f, 0.11f);  // warmer, brighter ambient
 
 	std::vector<std::unique_ptr<Light>> lightSources;
 
-	// Warm key light simulating the window, coming from the left/front
+	// Warm overhead/window key light
 	lightSources.push_back(std::make_unique<DirectionalLight>(
-		Eigen::Vector3f(-1.f, 0.3f, 0.5f).normalized(),
-		Eigen::Vector3f(0.30f, 0.25f, 0.18f)));
+		Eigen::Vector3f(-0.3f, 0.8f, 0.5f).normalized(),
+		Eigen::Vector3f(0.70f, 0.55f, 0.35f)));  // brighter, more golden
 
-	// Dim cool fill light from the opposite side
+	// Dim cool fill from opposite side
 	lightSources.push_back(std::make_unique<DirectionalLight>(
-		Eigen::Vector3f(1.f, 0.f, -0.5f).normalized(),
-		Eigen::Vector3f(0.04f, 0.04f, 0.06f)));
+		Eigen::Vector3f(1.f, 0.2f, -0.3f).normalized(),
+		Eigen::Vector3f(0.10f, 0.11f, 0.16f)));
+
+	// Soft bounce from below
+	lightSources.push_back(std::make_unique<DirectionalLight>(
+		Eigen::Vector3f(0.f, -1.f, 0.f).normalized(),
+		Eigen::Vector3f(0.09f, 0.07f, 0.05f)));  // slightly warmer bounce
 
 	// *** Render the scene ***
 
@@ -297,7 +304,7 @@ int main(int argc, char* argv[]) {
 				color.y() = std::min(color.y(), 1.f);
 				color.z() = std::min(color.z(), 1.f);
 
-				int line = (pixHeight - scanlines[y]) - 1;
+				int line = scanlines[y];
 				outImage[(x + line * pixWidth) * nChannels + 0] = color.x() * 255;
 				outImage[(x + line * pixWidth) * nChannels + 1] = color.y() * 255;
 				outImage[(x + line * pixWidth) * nChannels + 2] = color.z() * 255;
