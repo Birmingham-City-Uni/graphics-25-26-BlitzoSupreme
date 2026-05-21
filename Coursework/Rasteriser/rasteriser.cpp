@@ -409,14 +409,13 @@ int main()
 	Eigen::Vector3f camWorldPos = (cameraToWorld * Eigen::Vector4f(0, 0, 0, 1)).block<3, 1>(0, 0);
 
 	std::vector<std::unique_ptr<Light>> lights;
-	// I've already added an ambient light for you!
-	// Much darker ambient with a very slight cool tint
+
 	lights.emplace_back(new AmbientLight(Eigen::Vector3f(0.03f, 0.03f, 0.05f)));
 
-	// Warm key light simulating the window — direction tweaked to come from the left/front
+
 	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.30f, 0.25f, 0.18f), Eigen::Vector3f(-1.f, 0.3f, 0.5f)));
 
-	// Dim fill light from the opposite side to keep shadows from going pure black
+
 	lights.emplace_back(new DirectionalLight(Eigen::Vector3f(0.04f, 0.04f, 0.06f), Eigen::Vector3f(1.f, 0.f, -0.5f)));
 
 	Eigen::Vector3f noSpec(0.05f, 0.05f, 0.05f);
@@ -452,10 +451,9 @@ int main()
 	for (const auto& obj : objects) {
 		drawMesh(imageBuffer, zBuffer, obj.mesh, obj.texture, obj.texW, obj.texH,
 			obj.transform, worldToClip, lights, width, height,
-			obj.specularColor, obj.specularExponent, mode, camWorldPos);  // use obj's values
+			obj.specularColor, obj.specularExponent, mode, camWorldPos);  
 	}
 
-	// For debug - draw point lights as colored circles so we can see where they are
 	drawPointLights(imageBuffer, width, height, lights);
 
 	// Save the image
