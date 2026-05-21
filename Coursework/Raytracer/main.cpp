@@ -255,24 +255,29 @@ int main(int argc, char* argv[]) {
 	builder.addObject("../models/Doug_HEAD.obj", &dHeadTShader, 4, scenePos, rX, rY, rZ);
 
 	// *** Add lights to scene ***
-	Eigen::Vector3f ambientLight(0.22f, 0.17f, 0.11f);  // warmer, brighter ambient
+	Eigen::Vector3f ambientLight(0.35f, 0.32f, 0.28f);  // brighter, slightly warm ambient
 
 	std::vector<std::unique_ptr<Light>> lightSources;
 
-	// Warm overhead/window key light
+	// Strong window light from upper-left (key light — mimics the window in reference)
 	lightSources.push_back(std::make_unique<DirectionalLight>(
-		Eigen::Vector3f(-0.3f, 0.8f, 0.5f).normalized(),
-		Eigen::Vector3f(0.70f, 0.55f, 0.35f)));  // brighter, more golden
+		Eigen::Vector3f(0.6f, 0.5f, 0.3f).normalized(),
+		Eigen::Vector3f(0.75f, 0.68f, 0.55f)));  // bright warm-white, main illumination
 
-	// Dim cool fill from opposite side
+	// Cool secondary fill from right side (bounced from walls)
 	lightSources.push_back(std::make_unique<DirectionalLight>(
-		Eigen::Vector3f(1.f, 0.2f, -0.3f).normalized(),
-		Eigen::Vector3f(0.10f, 0.11f, 0.16f)));
+		Eigen::Vector3f(-0.5f, 0.3f, -0.4f).normalized(),
+		Eigen::Vector3f(0.18f, 0.17f, 0.20f)));  // subtle cool fill
 
-	// Soft bounce from below
+	// Soft upward bounce light (floor reflection, brightens lower geometry)
 	lightSources.push_back(std::make_unique<DirectionalLight>(
 		Eigen::Vector3f(0.f, -1.f, 0.f).normalized(),
-		Eigen::Vector3f(0.09f, 0.07f, 0.05f)));  // slightly warmer bounce
+		Eigen::Vector3f(0.12f, 0.10f, 0.08f)));  // warm floor bounce
+
+	// Rear/back wall fill (stops back wall going completely black)
+	lightSources.push_back(std::make_unique<DirectionalLight>(
+		Eigen::Vector3f(0.f, 0.2f, -1.f).normalized(),
+		Eigen::Vector3f(0.10f, 0.09f, 0.08f)));  // subtle back fill
 
 	// *** Render the scene ***
 
